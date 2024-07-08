@@ -5,7 +5,7 @@ x-spark-common: &spark-common
   volumes:
     - ./jobs:/opt/bitnami/spark/jobs
   command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
-  depends-on:
+  depends_on:
     - spark-master
   environment:
     - SPARK_MODE=worker
