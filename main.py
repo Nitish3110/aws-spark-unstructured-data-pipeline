@@ -2,7 +2,7 @@ from config import config
 from utils import *
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
-from pyspark.sql.functions import udf
+from pyspark.sql.functions import udf, regexp_replace
 
 def define_udfs():
     return {
@@ -66,8 +66,59 @@ if __name__ == "__main__":
                         .option("wholetext", "true")
                         .load(text_input_dir))
     
+    job_bulletins_df = job_bulletins_df.withColumn('file_name', 
+                                                   regexp_replace(udfs['extract_file_name_udf']('value'), r'\r', ' '))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('value', 
+                                                   regexp_replace('value', r'\n', ' '))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('position', 
+                                                   regexp_replace(udfs['extract_position_udf']('value'), r'\r', ' '))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('classcode', 
+                                                   udfs['extract_classcode_udf']('value'))
+
+    job_bulletins_df = job_bulletins_df.withColumn('salary_start', 
+                                                   udfs['extract_salary_udf']('value').getField('salary_start'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('salary_end', 
+                                                   udfs['extract_salary_udf']('value').getField('salary_end'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('start_date', 
+                                                   udfs['extract_start_date_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('end_date', 
+                                                   udfs['extract_end_date_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('requirements', 
+                                                   udfs['extract_requirements_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('notes', 
+                                                   udfs['extract_notes_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('duties', 
+                                                   udfs['extract_duties_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('selection', 
+                                                   udfs['extract_selection_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('experience_required', 
+                                                   udfs['extract_experience_required_udf']('value'))
+    
+    job_bulletins_df = job_bulletins_df.withColumn('education_years', 
+                                                   udfs['extract_education_years_udf']('value'))
+
+    job_bulletins_df = job_bulletins_df.withColumn('application_location', 
+                                                   udfs['extract_application_location_udf']('value'))    
+    
+    
+    
+
     query = (job_bulletins_df
              .writeStream
-             .outputMode("")
+             .outputMode("append")
              .format("console")
+             .option("truncate", "false")
              .start())
+    
+    query.awaitTermination()
